@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}{{ action }} chore | Shared Household{% endblock %}
+
+{% block content %}
+<section class="form-card" aria-labelledby="chore-form-heading">
+    <p class="eyebrow">{{ household.name }}</p>
+    <h1 id="chore-form-heading">{{ action }} chore</h1>
+    <p class="intro">Set the chore details for your household.</p>
+
+    <form method="post" class="household-form">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        {% for field in form %}
+            <div class="field-group">
+                {{ field.label_tag }}
+                {{ field }}
+                {{ field.errors }}
+                {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+            </div>
+        {% endfor %}
+        <button type="submit">{{ action }} chore</button>
+    </form>
+
+    <p><a href="{% url 'chore-list' %}">Back to chore catalog</a></p>
+</section>
+{% endblock %}

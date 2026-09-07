@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Chores | Shared Household{% endblock %}
+
+{% block content %}
+<section class="form-card" aria-labelledby="chore-list-heading">
+    <p class="eyebrow">{{ household.name }}</p>
+    <h1 id="chore-list-heading">Chore catalog</h1>
+
+    {% if messages %}
+        {% for message in messages %}
+            <p class="status-note" role="status">{{ message }}</p>
+        {% endfor %}
+    {% endif %}
+
+    <p class="intro">Manage the chores shared by your household.</p>
+    <p><a href="{% url 'chore-create' %}">Add a chore</a></p>
+
+    {% if chores %}
+        <ul class="member-list">
+            {% for chore in chores %}
+                <li>
+                    <span>{{ chore.name }} ({{ chore.points }} points)</span>
+                    <span>
+                        <a href="{% url 'chore-edit' chore.pk %}">Edit</a>
+                        <form method="post" action="{% url 'chore-delete' chore.pk %}">
+                            {% csrf_token %}
+                            <button type="submit">Delete</button>
+                        </form>
+                    </span>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No chores have been added yet.</p>
+    {% endif %}
+</section>
+{% endblock %}

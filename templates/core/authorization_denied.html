@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block title %}Access denied | Shared Household{% endblock %}
+
+{% block content %}
+<section class="form-card" aria-labelledby="authorization-denied-heading">
+    <p class="eyebrow">Access denied</p>
+    <h1 id="authorization-denied-heading">This action is not available.</h1>
+    <p class="error-message" role="alert">{{ error }}</p>
+</section>
+{% endblock %}

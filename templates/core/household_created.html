@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Household created | Shared Household{% endblock %}
+
+{% block content %}
+<section class="form-card" aria-labelledby="household-created-heading">
+    <p class="eyebrow">Household ready</p>
+    <h1 id="household-created-heading">Share this invite code.</h1>
+    <p class="intro">Give this code to anyone who should join your household.</p>
+    <label for="invite-code">Invite code</label>
+    <input id="invite-code" type="text" value="{{ household.invite_code }}" readonly aria-label="Household invite code">
+</section>
+{% endblock %}

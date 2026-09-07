@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block title %}Current household | Shared Household{% endblock %}
+
+{% block content %}
+<section class="form-card" aria-labelledby="current-household-heading">
+    <p class="eyebrow">Active household member</p>
+    <h1 id="current-household-heading">{{ household.name }}</h1>
+    <p class="intro">You are signed in as {{ member.nickname }}.</p>
+</section>
+{% endblock %}
