@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}Manage members | Shared Household{% endblock %}
+
+{% block content %}
+<section class="form-card" aria-labelledby="member-management-heading">
+    <p class="eyebrow">Household members</p>
+    <h1 id="member-management-heading">Manage {{ household.name|default:"this household" }}.</h1>
+
+    {% if error %}
+        <p class="error-message" role="alert">{{ error }}</p>
+    {% elif message %}
+        <p class="status-note" role="status">{{ message }}</p>
+    {% endif %}
+
+    {% if household %}
+        <ul class="member-list">
+            {% for member in active_members %}
+                <li>
+                    <span>{{ member.nickname }}</span>
+                    {% if member.pk == household.creator_id %}
+                        <span>Creator</span>
+                    {% else %}
+                        <form method="post" action="{% url 'member-remove' member.pk %}">
+                            {% csrf_token %}
+                            <button type="submit">Remove</button>
+                        </form>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</section>
+{% endblock %}
