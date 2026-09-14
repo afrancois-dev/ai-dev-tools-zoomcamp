@@ -125,6 +125,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Board'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '422':
           $ref: '#/components/responses/ValidationError'
         '500':
@@ -238,7 +240,7 @@ components:
 
   responses:
     NotFound:
-      description: The referenced card does not exist.
+      description: The referenced card or column does not exist.
       content:
         application/json:
           schema:
