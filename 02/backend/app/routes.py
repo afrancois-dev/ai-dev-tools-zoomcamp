@@ -9,7 +9,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, status
 
-from .db import InMemoryBoardRepository
+from .db import BoardRepository
 from .dependencies import get_repository
 from .models import (
     Board,
@@ -24,7 +24,7 @@ router = APIRouter(prefix="/api")
 
 @router.get("/board", response_model=Board, tags=["Board"], summary="Fetch the whole board")
 def get_board(
-    repository: InMemoryBoardRepository = Depends(get_repository),
+    repository: BoardRepository = Depends(get_repository),
 ) -> Board:
     return repository.get_board()
 
@@ -38,7 +38,7 @@ def get_board(
 )
 def create_column(
     payload: CreateColumnRequest,
-    repository: InMemoryBoardRepository = Depends(get_repository),
+    repository: BoardRepository = Depends(get_repository),
 ) -> Board:
     return repository.create_column(payload.title)
 
@@ -52,7 +52,7 @@ def create_column(
 )
 def create_card(
     payload: CreateCardRequest,
-    repository: InMemoryBoardRepository = Depends(get_repository),
+    repository: BoardRepository = Depends(get_repository),
 ) -> Board:
     return repository.create_card(
         column_id=payload.column_id,
@@ -72,7 +72,7 @@ def create_card(
 def update_card(
     id: UUID,
     payload: UpdateCardRequest,
-    repository: InMemoryBoardRepository = Depends(get_repository),
+    repository: BoardRepository = Depends(get_repository),
 ) -> Board:
     return repository.update_card(
         id,
@@ -91,7 +91,7 @@ def update_card(
 )
 def delete_card(
     id: UUID,
-    repository: InMemoryBoardRepository = Depends(get_repository),
+    repository: BoardRepository = Depends(get_repository),
 ) -> Board:
     return repository.delete_card(id)
 
@@ -105,7 +105,7 @@ def delete_card(
 def move_card(
     id: UUID,
     payload: MoveCardRequest,
-    repository: InMemoryBoardRepository = Depends(get_repository),
+    repository: BoardRepository = Depends(get_repository),
 ) -> Board:
     return repository.move_card(
         id, column_id=payload.column_id, position=payload.position

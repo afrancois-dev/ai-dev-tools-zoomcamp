@@ -17,7 +17,7 @@ export type {
  * Flip `USE_MOCK` to `false` (or set `VITE_API_BASE_URL`) once the FastAPI
  * backend is running and the same calls hit real HTTP endpoints.
  */
-const USE_MOCK = true
+const USE_MOCK = false
 
 export const boardApi: Backend = USE_MOCK
   ? createMockBackend()

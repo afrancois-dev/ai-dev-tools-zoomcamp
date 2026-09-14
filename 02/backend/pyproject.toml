@@ -5,6 +5,7 @@ description = "FastAPI backend for KanbanLite (Mini Kanban Board)."
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.141.1",
+    "sqlalchemy>=2.0.52",
     "uvicorn[standard]>=0.53.0",
 ]
 
