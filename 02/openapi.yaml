@@ -1,0 +1,426 @@
+openapi: 3.1.0
+info:
+  title: KanbanLite API
+  version: 1.0.0
+  summary: Backend contract expected by the KanbanLite frontend.
+  description: |
+    Mini Kanban Board ("KanbanLite") backend as required by the frontend in
+    `frontent/src/api/`.
+
+    All paths are relative to `VITE_API_BASE_URL`, which defaults to `/api`
+    (see `frontent/src/api/httpBackend.ts`). The frontend reaches the backend
+    exclusively through that client, so this document is the complete surface
+    it depends on.
+
+    State model: a single board made of ordered columns and cards. Every
+    state-changing operation returns the **full updated board**, which the
+    frontend uses to replace its local state in one step.
+
+    ## Authentication
+
+    KanbanLite is **open access**: no endpoint requires authentication
+    (see "Open Access" in the product spec). The global `security: []`
+    explicitly marks every operation as public; there are currently no
+    security schemes.
+  contact:
+    name: KanbanLite
+servers:
+  - url: http://localhost:8000/api
+    description: Local FastAPI backend (default `/api` base URL).
+  - url: /api
+    description: Same-origin relative base URL.
+
+# Empty array = no authentication required for any operation.
+security: []
+
+tags:
+  - name: Board
+    description: Read the single board workspace.
+  - name: Columns
+    description: Manage custom status columns.
+  - name: Cards
+    description: Create, update, delete and move cards.
+
+paths:
+  /board:
+    get:
+      operationId: getBoard
+      summary: Fetch the whole board
+      description: |
+        Returns every column and every card. Called once on application load;
+        the frontend replaces its local state with the response.
+
+        Authentication: not required.
+      tags: [Board]
+      responses:
+        '200':
+          description: Current board state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Board'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /columns:
+    post:
+      operationId: createColumn
+      summary: Create a column
+      description: |
+        Appends a custom column to the board. The server assigns the `id`
+        (UUID) and `order` (next sequential integer after the current maximum
+        `order`). The five default columns are seeded by the backend and are
+        not created through this endpoint.
+
+        Authentication: not required.
+      tags: [Columns]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateColumnRequest'
+            example:
+              title: Blocked
+      responses:
+        '201':
+          description: Column created. Returns the full updated board.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Board'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /cards:
+    post:
+      operationId: createCard
+      summary: Create a card
+      description: |
+        Creates a card in the given column. The server assigns the `id` (UUID),
+        `created_at` (current UTC time), and `position` (appended to the end of
+        the destination column). Omitted optional fields default to an empty
+        description, `Medium` priority and an empty due date.
+
+        Authentication: not required.
+      tags: [Cards]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCardRequest'
+            example:
+              column_id: 6f1c2b7e-9a3d-4f2a-8c11-2b0f9d7e4a10
+              title: Write API docs
+              description: Document all board endpoints.
+              priority: High
+              due_date: '2026-09-30'
+      responses:
+        '201':
+          description: Card created. Returns the full updated board.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Board'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /cards/{id}:
+    parameters:
+      - $ref: '#/components/parameters/CardId'
+    patch:
+      operationId: updateCard
+      summary: Update a card
+      description: |
+        Partial update. Only the provided fields are changed; omitted fields are
+        left untouched. `id`, `column_id`, `position` and `created_at` cannot be
+        changed here — use `moveCard` to relocate a card.
+
+        Authentication: not required.
+      tags: [Cards]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCardRequest'
+            example:
+              title: Write API docs
+              priority: Urgent
+              due_date: '2026-10-05'
+      responses:
+        '200':
+          description: Card updated. Returns the full updated board.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Board'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    delete:
+      operationId: deleteCard
+      summary: Delete a card
+      description: |
+        Removes the card and re-normalizes the `position` of the remaining cards
+        in its column (0-based, no gaps).
+
+        Authentication: not required.
+      tags: [Cards]
+      responses:
+        '200':
+          description: Card deleted. Returns the full updated board.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Board'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /cards/{id}/move:
+    parameters:
+      - $ref: '#/components/parameters/CardId'
+    patch:
+      operationId: moveCard
+      summary: Move a card
+      description: |
+        Moves a card to a target column and zero-based position. This single
+        operation covers both inter-column transfer and intra-column
+        reordering. The server re-normalizes `position` for every card in the
+        source and destination columns so positions stay contiguous.
+
+        Authentication: not required.
+      tags: [Cards]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoveCardRequest'
+            example:
+              column_id: 6f1c2b7e-9a3d-4f2a-8c11-2b0f9d7e4a10
+              position: 0
+      responses:
+        '200':
+          description: Card moved. Returns the full updated board.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Board'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+components:
+  parameters:
+    CardId:
+      name: id
+      in: path
+      required: true
+      description: Identifier (UUID) of the card.
+      schema:
+        type: string
+        format: uuid
+      example: 6f1c2b7e-9a3d-4f2a-8c11-2b0f9d7e4a10
+
+  responses:
+    NotFound:
+      description: The referenced card does not exist.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            detail: Card 6f1c2b7e-9a3d-4f2a-8c11-2b0f9d7e4a10 not found
+    ValidationError:
+      description: Request body or parameters failed validation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            detail:
+              - loc: [body, title]
+                msg: Field required
+                type: missing
+    ServerError:
+      description: Unexpected server error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            detail: Internal Server Error
+
+  schemas:
+    Priority:
+      type: string
+      description: Card priority level.
+      enum: [Low, Medium, High, Urgent]
+
+    Column:
+      type: object
+      description: A status column on the single board.
+      required: [id, title, order]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Server-assigned identifier.
+        title:
+          type: string
+          minLength: 1
+          description: Display name of the column.
+        order:
+          type: integer
+          minimum: 0
+          description: Zero-based position of the column left-to-right on the board.
+
+    Card:
+      type: object
+      description: A task card belonging to exactly one column.
+      required:
+        - id
+        - column_id
+        - title
+        - description
+        - priority
+        - created_at
+        - due_date
+        - position
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Server-assigned identifier.
+        column_id:
+          type: string
+          format: uuid
+          description: Identifier of the column the card currently belongs to.
+        title:
+          type: string
+          minLength: 1
+        description:
+          type: string
+          description: Free-form detail. Empty string when unset.
+        priority:
+          $ref: '#/components/schemas/Priority'
+        created_at:
+          type: string
+          format: date-time
+          description: Server-assigned ISO 8601 creation timestamp (UTC).
+        due_date:
+          type: string
+          description: |
+            ISO 8601 calendar date (`YYYY-MM-DD`), or an empty string when no
+            due date is set.
+          examples: ['2026-09-30', '']
+        position:
+          type: integer
+          minimum: 0
+          description: Zero-based vertical position within its column.
+
+    Board:
+      type: object
+      description: The complete board state. Returned by every endpoint.
+      required: [columns, cards]
+      properties:
+        columns:
+          type: array
+          description: All columns, ordered by `order`.
+          items:
+            $ref: '#/components/schemas/Column'
+        cards:
+          type: array
+          description: All cards across all columns.
+          items:
+            $ref: '#/components/schemas/Card'
+
+    CreateColumnRequest:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          description: Title of the new column. Trimmed by the server.
+
+    CreateCardRequest:
+      type: object
+      required: [column_id, title]
+      properties:
+        column_id:
+          type: string
+          format: uuid
+          description: Column the card is created in.
+        title:
+          type: string
+          minLength: 1
+          description: Card title. Trimmed by the server.
+        description:
+          type: string
+          default: ''
+          description: Optional free-form detail.
+        priority:
+          allOf:
+            - $ref: '#/components/schemas/Priority'
+          default: Medium
+        due_date:
+          type: string
+          default: ''
+          description: Optional ISO 8601 date (`YYYY-MM-DD`).
+
+    UpdateCardRequest:
+      type: object
+      description: Partial card update. At least one field should be provided.
+      minProperties: 1
+      properties:
+        title:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        priority:
+          $ref: '#/components/schemas/Priority'
+        due_date:
+          type: string
+          description: ISO 8601 date (`YYYY-MM-DD`); send `""` to clear it.
+
+    MoveCardRequest:
+      type: object
+      required: [column_id, position]
+      properties:
+        column_id:
+          type: string
+          format: uuid
+          description: Destination column (may be the card's current column).
+        position:
+          type: integer
+          minimum: 0
+          description: |
+            Zero-based target index in the destination column. Values greater
+            than the column length are clamped to the end. The server
+            re-normalizes positions after the move.
+
+    Error:
+      type: object
+      description: FastAPI error envelope.
+      required: [detail]
+      properties:
+        detail:
+          description: |
+            Human-readable error message, or a list of validation errors
+            (`loc` / `msg` / `type`) for 422 responses.
